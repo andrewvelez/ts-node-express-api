@@ -142,6 +142,8 @@ app.post('/email/send', upload.none(), async (req, res) => {
     for (const key in req.body) {
       formData.append(key, req.body[key]);
     }
+    formData.append('service_id', process.env.EMAILJS_SERVICE_ID);
+    formData.append('template_id', process.env.EMAILJS_TEMPLATE_ID);
     formData.append('user_id', process.env.EMAILJS_PUBLIC_KEY);
     formData.append('accessToken', process.env.EMAILJS_PRIVATE_KEY);
 
