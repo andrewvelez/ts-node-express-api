@@ -25,55 +25,78 @@ app.get('/', (req, res) => {
   if (acceptsHTML) {
     // Return HTML page for browsers
     res.send(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>EmailJS Proxy Server</title>
-        <style>
-          body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
-          h1 { color: #333; }
-          .endpoint { background: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 5px; }
-          code { background: #eee; padding: 2px 5px; }
-          pre { background: #2d2d2d; color: #fff; padding: 15px; border-radius: 5px; overflow-x: auto; }
-        </style>
-      </head>
-      <body>
-        <h1>✉️ EmailJS Proxy Server</h1>
-        <p>A secure proxy server for sending emails via EmailJS with CORS support.</p>
+     <!DOCTYPE html>
+    <html>
+    <head>
+      <title>EmailJS Proxy API</title>
+      <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+        h1 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .endpoint { background: #f5f7fa; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #4a6fa5; }
+        code { background: #edf2f7; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+        pre { background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 6px; overflow-x: auto; margin: 10px 0; }
+        .method { display: inline-block; background: #4a5568; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; margin-right: 8px; }
+        .path { color: #2b6cb0; }
+        .note { background: #feebc8; padding: 10px; border-radius: 6px; border-left: 4px solid #dd6b20; margin: 15px 0; }
+      </style>
+    </head>
+    <body>
+      <h1>✉️ EmailJS Proxy API Server</h1>
+      <p><strong>Status:</strong> <span style="color: #38a169;">● Healthy</span></p>
+      <p>This server acts as a secure proxy for sending emails via EmailJS, handling CORS and API key security.</p>
+      
+      <div class="note">
+        <strong>📌 Important:</strong> Your API keys are stored server-side and injected automatically. 
+        Only send <code>service_id</code>, <code>template_id</code>, and <code>template_params</code> from your frontend.
+      </div>
+      
+      <div class="endpoint">
+        <h3><span class="method">POST</span> <span class="path">/email/send</span></h3>
+        <p><strong>Description:</strong> Send an email through the EmailJS service.</p>
         
-        <div class="endpoint">
-          <h2>📤 Send Email</h2>
-          <p><strong>Method:</strong> <code>POST</code></p>
-          <p><strong>Endpoint:</strong> <code>/api/email/send</code></p>
-          <p><strong>Description:</strong> Send an email through EmailJS</p>
-          
-          <h3>Example Request:</h3>
-          <pre><code>fetch('/email/send', {
+        <p><strong>Required fields in your FormData:</strong></p>
+        <ul>
+          <li><code>service_id</code> (Your EmailJS service ID)</li>
+          <li><code>template_id</code> (Your EmailJS template ID)</li>
+          <li><code>template_params[field_name]</code> (Your dynamic template fields)</li>
+        </ul>
+        
+        <p><strong>Example frontend JavaScript:</strong></p>
+        <pre><code>// Create FormData from your HTML form
+const formElement = document.getElementById('contact-form');
+const formData = new FormData(formElement);
+
+// Add the required EmailJS identifiers
+formData.append('service_id', 'your_service_id_here');
+formData.append('template_id', 'your_template_id_here');
+
+// Send to this API
+fetch('https://api.travelsolutionsri.com/email/send', {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    service_id: 'your_service_id',
-    template_id: 'your_template_id',
-    template_params: {
-      name: 'John Doe',
-      email: 'john@example.com',
-      message: 'Hello!'
-    }
-  })
-})</code></pre>
-        </div>
+  body: formData // Browser sets Content-Type to multipart/form-data automatically
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Success:', data);
+  alert('Message sent successfully!');
+})
+.catch(error => {
+  console.error('Error:', error);
+  alert('Failed to send message.');
+});</code></pre>
         
-        <div class="endpoint">
-          <h2>📊 API Documentation (JSON)</h2>
-          <p><strong>Method:</strong> <code>GET</code></p>
-          <p><strong>Endpoint:</strong> <code>/</code></p>
-          <p><strong>Description:</strong> Returns complete API documentation in JSON format</p>
-          <p><a href="/?format=json">View raw JSON</a></p>
-        </div>
-        
-        <p><small>Server status: <strong style="color: green;">● Healthy</strong></small></p>
-      </body>
-      </html>
+        <p><strong>📝 Note:</strong> The server automatically adds your <code>user_id</code> (public key) and <code>accessToken</code> (private key) from environment variables.</p>
+      </div>
+      
+      <div class="endpoint">
+        <h3><span class="method">GET</span> <span class="path">/</span></h3>
+        <p><strong>Description:</strong> This documentation page (returns JSON for API clients).</p>
+        <p><strong>Try it:</strong> <a href="/?format=json" style="color: #2b6cb0;">View raw JSON response</a></p>
+      </div>
+      
+      <p><small>Server time: ${new Date().toISOString()}</small></p>
+    </body>
+    </html>
     `);
   } else {
     // Return the existing JSON for API clients
