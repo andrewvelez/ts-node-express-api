@@ -5,159 +5,89 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const EMAILJS_URL = 'https://api.emailjs.com/api/v1.0/email/send-form';
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
 app.get('/', (req, res) => {
   res.json({
-    message: 'Proxy server is running',
-    endpoints: {
-      proxy: '/api/proxy?url=YOUR_TARGET_URL',
-      github: '/api/github/* (example)',
-      custom: '/api/custom (POST method)'
-    },
-    usage: 'Use /api/proxy?url=https://api.example.com/data to proxy requests'
+    message: 'EmailJS Proxy Server',
+    endpoint: 'POST /api/email/send',
+    usage: 'Send POST request with EmailJS parameters to this endpoint'
   });
 });
 
-// Simple proxy endpoint (GET requests)
-app.get('/api/proxy', async (req, res) => {
+// EmailJS proxy endpoint (POST only)
+app.post('/api/email/send', async (req, res) => {
   try {
-    const targetUrl = req.query.url;
+    const { service_id, template_id, user_id, template_params, accessToken } = req.body;
     
-    if (!targetUrl) {
+    // Validate required fields
+    if (!service_id || !template_id || !user_id) {
       return res.status(400).json({ 
-        error: 'Missing URL parameter',
-        example: '/api/proxy?url=https://api.example.com/data' 
+        error: 'Missing required parameters',
+        required: ['service_id', 'template_id', 'user_id'],
+        received: req.body
       });
     }
 
-    // Validate URL
-    try {
-      new URL(targetUrl);
-    } catch (error) {
-      return res.status(400).json({ error: 'Invalid URL format' });
-    }
+    // Prepare EmailJS request
+    const payload = {
+      service_id,
+      template_id,
+      user_id,
+      template_params: template_params || {},
+      accessToken: accessToken || undefined
+    };
 
-    // Forward the request
-    const response = await axios({
-      method: 'GET',
-      url: targetUrl,
+    // Make request to EmailJS
+    const response = await axios.post(EMAILJS_URL, payload, {
       headers: {
-        ...req.headers,
-        'host': new URL(targetUrl).host,
-        'origin': new URL(targetUrl).origin,
-        'referer': targetUrl
+        'Content-Type': 'application/json',
+        'Origin': req.headers.origin || 'https://your-website.com',
+        'User-Agent': req.headers['user-agent'] || 'EmailJS-Proxy/1.0'
       },
-      params: req.query,
-      responseType: 'stream',
       timeout: 10000 // 10 second timeout
     });
 
-    // Forward headers from target server
-    res.status(response.status);
-    Object.keys(response.headers).forEach(key => {
-      res.setHeader(key, response.headers[key]);
+    // Return EmailJS response
+    res.status(response.status).json({
+      success: true,
+      message: 'Email sent successfully',
+      data: response.data
     });
 
-    // Pipe the response
-    response.data.pipe(res);
-
   } catch (error) {
-    console.error('Proxy error:', error.message);
+    console.error('EmailJS proxy error:', error.message);
     
+    // Extract error details from EmailJS response if available
     const status = error.response?.status || 500;
-    const message = error.response?.data || error.message;
+    const message = error.response?.data?.message || error.message;
     
     res.status(status).json({
-      error: 'Proxy request failed',
+      success: false,
+      error: 'Failed to send email',
       message: message,
-      url: req.query.url
+      details: error.response?.data
     });
   }
 });
 
-// Example: GitHub API proxy (fixed endpoint)
-app.get('/api/github/:user', async (req, res) => {
-  try {
-    const { user } = req.params;
-    const response = await axios.get(`https://api.github.com/users/${user}`);
-    res.json(response.data);
-  } catch (error) {
-    res.status(error.response?.status || 500).json({
-      error: 'Failed to fetch GitHub data',
-      message: error.message
-    });
-  }
-});
-
-// Advanced proxy endpoint (handles multiple HTTP methods)
-app.all('/api/custom', async (req, res) => {
-  try {
-    const { targetUrl, method = 'GET', headers = {}, body = null } = req.body;
-    
-    if (!targetUrl) {
-      return res.status(400).json({ error: 'targetUrl is required in request body' });
-    }
-
-    // Validate URL
-    try {
-      new URL(targetUrl);
-    } catch (error) {
-      return res.status(400).json({ error: 'Invalid URL format' });
-    }
-
-    const config = {
-      method: method.toUpperCase(),
-      url: targetUrl,
-      headers: {
-        ...headers,
-        'user-agent': req.headers['user-agent'] || 'Proxy-Server/1.0'
-      },
-      timeout: 15000,
-      validateStatus: null // Don't throw on HTTP error status
-    };
-
-    if (body && ['POST', 'PUT', 'PATCH'].includes(config.method)) {
-      config.data = body;
-    }
-
-    const response = await axios(config);
-
-    // Forward the response
-    res.status(response.status);
-    
-    // Copy headers, excluding security-sensitive ones
-    const headersToExclude = ['set-cookie', 'content-encoding', 'content-length'];
-    Object.keys(response.headers).forEach(key => {
-      if (!headersToExclude.includes(key.toLowerCase())) {
-        res.setHeader(key, response.headers[key]);
-      }
-    });
-
-    res.send(response.data);
-
-  } catch (error) {
-    console.error('Custom proxy error:', error.message);
-    res.status(500).json({
-      error: 'Proxy request failed',
-      message: error.message
-    });
-  }
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+// Error handling for undefined routes
+app.use('*', (req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: 'Use POST /api/email/send for sending emails'
+  });
 });
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Proxy server running on port ${PORT}`);
-  console.log(`🌐 Local: http://localhost:${PORT}`);
-  console.log(`📖 Documentation: http://localhost:${PORT}/`);
+  console.log(`✉️  EmailJS Proxy Server running on port ${PORT}`);
+  console.log(`📤  Endpoint: POST http://localhost:${PORT}/api/email/send`);
+  console.log(`📖  Test: http://localhost:${PORT}/`);
 });
