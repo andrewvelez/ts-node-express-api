@@ -1,93 +1,53 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const FormData = require('form-data'); // Correct package for multipart
+const multer = require('multer');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const EMAILJS_URL = 'https://api.emailjs.com/api/v1.0/email/send-form';
+const upload = multer();
 
-// Middleware
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
-app.get('/', (req, res) => {
-  res.json({
-    message: 'EmailJS Proxy Server',
-    endpoint: 'POST /api/email/send',
-    usage: 'Send POST request with EmailJS parameters to this endpoint'
-  });
-});
-
-// EmailJS proxy endpoint (POST only)
-app.post('/api/email/send', async (req, res) => {
+app.post('/api/email/send', upload.none(), async (req, res) => {
   try {
-    const { service_id, template_id, user_id, template_params, accessToken } = req.body;
+    // 1. Create a proper FormData object for Node.js
+    const formData = new FormData();
     
-    // Validate required fields
-    if (!service_id || !template_id || !user_id) {
-      return res.status(400).json({ 
-        error: 'Missing required parameters',
-        required: ['service_id', 'template_id', 'user_id'],
-        received: req.body
-      });
+    // 2. Append ALL fields from the client request
+    for (const key in req.body) {
+      formData.append(key, req.body[key]);
     }
+    
+    // 3. Override with server-side credentials (secure)
+    formData.append('user_id', process.env.EMAILJS_PUBLIC_KEY);
+    formData.append('accessToken', process.env.EMAILJS_PRIVATE_KEY);
 
-    // Prepare EmailJS request
-    const payload = {
-      service_id,
-      template_id,
-      user_id,
-      template_params: template_params || {},
-      accessToken: accessToken || undefined
-    };
-
-    // Make request to EmailJS
-    const response = await axios.post(EMAILJS_URL, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Origin': req.headers.origin || 'https://your-website.com',
-        'User-Agent': req.headers['user-agent'] || 'EmailJS-Proxy/1.0'
-      },
-      timeout: 10000 // 10 second timeout
-    });
-
-    // Return EmailJS response
-    res.status(response.status).json({
-      success: true,
-      message: 'Email sent successfully',
-      data: response.data
-    });
-
+    // 4. Forward to EmailJS WITH correct headers
+    const response = await axios.post(
+      process.env.EMAILJS_URL,
+      formData, // Send the FormData object directly
+      {
+        headers: {
+          // Axios will automatically set:
+          // 'Content-Type': 'multipart/form-data; boundary=...'
+          // with the correct boundary from the formData object
+          ...formData.getHeaders() // This is the crucial part
+        }
+      }
+    );
+    
+    // 5. Pass response directly to client
+    res.status(response.status).json(response.data);
+    
   } catch (error) {
-    console.error('EmailJS proxy error:', error.message);
-    
-    // Extract error details from EmailJS response if available
+    // 6. Pass any error directly to client
     const status = error.response?.status || 500;
-    const message = error.response?.data?.message || error.message;
-    
-    res.status(status).json({
-      success: false,
-      error: 'Failed to send email',
-      message: message,
-      details: error.response?.data
-    });
+    const data = error.response?.data || { error: error.message };
+    res.status(status).json(data);
   }
 });
 
-// Error handling for undefined routes
-app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: 'Use POST /api/email/send for sending emails'
-  });
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`✉️  EmailJS Proxy Server running on port ${PORT}`);
-  console.log(`📤  Endpoint: POST http://localhost:${PORT}/api/email/send`);
-  console.log(`📖  Test: http://localhost:${PORT}/`);
-});
+app.listen(PORT);
