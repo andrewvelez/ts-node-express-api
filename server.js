@@ -11,49 +11,89 @@ const upload = multer();
 
 app.use(cors());
 
-// ========================
-// HEALTH CHECK ENDPOINT (API DOCUMENTATION)
-// ========================
+// In your server.js file, replace the current app.get('/', ...) with this:
 app.get('/', (req, res) => {
-  const apiDocumentation = {
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    service: 'EmailJS Proxy Server',
-    description: 'A secure proxy server for sending emails via EmailJS with CORS support',
-    version: '1.0.0',
-    endpoints: {
-      // Main endpoint for sending emails
-      sendEmail: {
-        method: 'POST',
-        path: '/api/email/send',
-        description: 'Send an email through EmailJS',
-        requiredFields: ['service_id', 'template_id'],
-        exampleRequest: {
-          service_id: 'your_service_id',
-          template_id: 'your_template_id',
-          template_params: {
-            name: 'John Doe',
-            email: 'john@example.com',
-            message: 'Hello from the contact form!'
-          }
-        },
-        notes: 'API keys (user_id, accessToken) are added server-side from environment variables'
-      },
-      // The health check endpoint itself
-      healthCheck: {
-        method: 'GET',
-        path: '/',
-        description: 'This endpoint - returns API documentation and server status'
-      }
-    },
-    security: {
-      note: 'EmailJS API keys are stored server-side in environment variables',
-      envVariables: ['EMAILJS_PUBLIC_KEY', 'EMAILJS_PRIVATE_KEY', 'EMAILJS_URL']
-    },
-    environment: process.env.NODE_ENV || 'development'
-  };
+  // Check if the request accepts HTML (browser) vs JSON (API client)
+  const acceptsHTML = req.headers.accept && req.headers.accept.includes('text/html');
 
-  res.status(200).json(apiDocumentation);
+  if (acceptsHTML) {
+    // Return HTML page for browsers
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>EmailJS Proxy Server</title>
+        <style>
+          body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+          h1 { color: #333; }
+          .endpoint { background: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 5px; }
+          code { background: #eee; padding: 2px 5px; }
+          pre { background: #2d2d2d; color: #fff; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        </style>
+      </head>
+      <body>
+        <h1>✉️ EmailJS Proxy Server</h1>
+        <p>A secure proxy server for sending emails via EmailJS with CORS support.</p>
+        
+        <div class="endpoint">
+          <h2>📤 Send Email</h2>
+          <p><strong>Method:</strong> <code>POST</code></p>
+          <p><strong>Endpoint:</strong> <code>/api/email/send</code></p>
+          <p><strong>Description:</strong> Send an email through EmailJS</p>
+          
+          <h3>Example Request:</h3>
+          <pre><code>fetch('/api/email/send', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    service_id: 'your_service_id',
+    template_id: 'your_template_id',
+    template_params: {
+      name: 'John Doe',
+      email: 'john@example.com',
+      message: 'Hello!'
+    }
+  })
+})</code></pre>
+        </div>
+        
+        <div class="endpoint">
+          <h2>📊 API Documentation (JSON)</h2>
+          <p><strong>Method:</strong> <code>GET</code></p>
+          <p><strong>Endpoint:</strong> <code>/</code></p>
+          <p><strong>Description:</strong> Returns complete API documentation in JSON format</p>
+          <p><a href="/?format=json">View raw JSON</a></p>
+        </div>
+        
+        <p><small>Server status: <strong style="color: green;">● Healthy</strong></small></p>
+      </body>
+      </html>
+    `);
+  } else {
+    // Return the existing JSON for API clients
+    const apiDocumentation = {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: 'EmailJS Proxy Server',
+      description: 'A secure proxy server for sending emails via EmailJS with CORS support',
+      version: '1.0.0',
+      endpoints: {
+        sendEmail: {
+          method: 'POST',
+          path: '/api/email/send',
+          description: 'Send an email through EmailJS',
+          requiredFields: ['service_id', 'template_id']
+        },
+        documentation: {
+          method: 'GET',
+          path: '/',
+          description: 'Returns API documentation'
+        }
+      }
+    };
+
+    res.status(200).json(apiDocumentation);
+  }
 });
 
 app.post('/api/email/send', upload.none(), async (req, res) => {
