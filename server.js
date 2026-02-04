@@ -34,7 +34,17 @@ app.get('/', (req, res) => {
         h1 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .endpoint { background: #f5f7fa; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #4a6fa5; }
         code { background: #edf2f7; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
-        pre { background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 6px; overflow-x: auto; margin: 10px 0; }
+        pre { 
+          background: #1e1e1e; 
+          color: #d4d4d4; 
+          padding: 20px; 
+          border-radius: 6px; 
+          overflow-x: auto; 
+          margin: 10px 0; 
+          font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+          font-size: 14px;
+          line-height: 1.5;
+        }
         .method { display: inline-block; background: #4a5568; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; margin-right: 8px; }
         .path { color: #2b6cb0; }
         .note { background: #feebc8; padding: 10px; border-radius: 6px; border-left: 4px solid #dd6b20; margin: 15px 0; }
