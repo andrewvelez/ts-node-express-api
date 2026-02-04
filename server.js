@@ -9,7 +9,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const upload = multer();
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://travelsolutionsri.com',    // Your main website
+    'https://www.travelsolutionsri.com' // Optional: with www
+  ],
+  credentials: true // If you need to send cookies/sessions
+}));
 
 // In your server.js file, replace the current app.get('/', ...) with this:
 app.get('/', (req, res) => {
@@ -42,7 +48,7 @@ app.get('/', (req, res) => {
           <p><strong>Description:</strong> Send an email through EmailJS</p>
           
           <h3>Example Request:</h3>
-          <pre><code>fetch('/api/email/send', {
+          <pre><code>fetch('/email/send', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -80,7 +86,7 @@ app.get('/', (req, res) => {
       endpoints: {
         sendEmail: {
           method: 'POST',
-          path: '/api/email/send',
+          path: '/email/send',
           description: 'Send an email through EmailJS',
           requiredFields: ['service_id', 'template_id']
         },
@@ -96,7 +102,7 @@ app.get('/', (req, res) => {
   }
 });
 
-app.post('/api/email/send', upload.none(), async (req, res) => {
+app.post('/email/send', upload.none(), async (req, res) => {
   try {
 
     const formData = new FormData();
