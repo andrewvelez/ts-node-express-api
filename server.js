@@ -33,10 +33,10 @@ app.get('/', (req, res) => {
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; }
         h1 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .endpoint { background: #f5f7fa; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #4a6fa5; }
-        code { background: #edf2f7; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
         pre { 
-          background: #1e1e1e; 
-          color: #d4d4d4; 
+          background: white;
+       border: 1px solid #ccc;
+       color: #333;
           padding: 20px; 
           border-radius: 6px; 
           overflow-x: auto; 
