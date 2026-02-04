@@ -160,7 +160,7 @@ app.post('/email/send', upload.none(), async (req, res) => {
     res.status(response.status).json(response.data);
 
   } catch (error) {
-    const status = error.response?.status || 500;
+    const status = error.response?.status;
     const data = error.response?.data || { error: error.message };
     res.status(status).json(data);
   }
