@@ -13,7 +13,7 @@ app.use(cors({
   origin: [
     'https://travelsolutionsri.com',
     'https://www.travelsolutionsri.com',
-    'https://travelsolutionsri.com'
+    'https://api.travelsolutionsri.com'
   ],
   credentials: true // If you need to send cookies/sessions
 }));
