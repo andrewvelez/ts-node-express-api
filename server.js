@@ -15,7 +15,7 @@ app.use(cors({
     'https://www.travelsolutionsri.com',
     'https://api.travelsolutionsri.com'
   ],
-  credentials: true // If you need to send cookies/sessions
+  credentials: false
 }));
 
 // In your server.js file, replace the current app.get('/', ...) with this:
