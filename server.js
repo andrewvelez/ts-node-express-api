@@ -11,8 +11,9 @@ const upload = multer();
 
 app.use(cors({
   origin: [
-    'https://travelsolutionsri.com',    // Your main website
-    'https://www.travelsolutionsri.com' // Optional: with www
+    'https://travelsolutionsri.com',
+    'https://www.travelsolutionsri.com',
+    'https://travelsolutionsri.com'
   ],
   credentials: true // If you need to send cookies/sessions
 }));
